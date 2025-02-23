@@ -1,3 +1,4 @@
 **/local-single-node_vault-keys.json
 **/local-multi-node_vault-keys.json
 secrets/tmp/
+settings.json
