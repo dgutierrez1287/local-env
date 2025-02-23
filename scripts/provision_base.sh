@@ -92,4 +92,11 @@ bash ${REPO_DIR}/scripts/terraform/run-bootstrap.sh ${REPO_DIR} ${CLUSTER_NAME}
 
 echo ""
 
+## restart coredns pod to ensure dns changes take affect ##
+echo "restarting core-dns pods"
+kubectl --context ${KUBE_CONTEXT} rollout restart deployment coredns -n kube-system
 
+echo ""
+
+echo "Base Provision of the local cluster is complete"
+echo "-----------------------------------------------"
