@@ -2,3 +2,4 @@
 **/local-multi-node_vault-keys.json
 secrets/tmp/
 settings.json
+**/.DS_Store
