@@ -14,6 +14,7 @@ echo "getting cluster settings"
 echo ""
 SETTINGS=$(cat ${REPO_DIR}/settings.json | jq --arg cluster "$CLUSTER_NAME" '.[$cluster]')
 
+LOCALKUBE_NAME=$(echo $SETTINGS | jq -r '.localKubeName')
 KUBE_CONTEXT=$(echo $SETTINGS | jq -r '.kubeContext')
 HELMFILE_ENV=$(echo $SETTINGS | jq -r '.helmfileEnvironment')
 CLUSTER_VIP=$(echo $SETTINGS | jq -r '.vip')
@@ -23,6 +24,7 @@ TERRAFORM_ENV=$(echo $SETTINGS | jq -r '.terraformEnv')
 
 echo "Cluster Settings"
 echo "----------------------------"
+echo "local-kube name: ${LOCALKUBE_NAME}"
 echo "kube context: ${KUBE_CONTEXT}"
 echo "helmfile environment: ${HELMFILE_ENV}"
 echo "cluster vip: ${CLUSTER_VIP}"
@@ -31,6 +33,29 @@ echo "minio alias: ${MINIO_ALIAS}"
 echo "terraform env: ${TERRAFORM_ENV}"
 echo "repo dir: ${REPO_DIR}"
 echo ""
+echo ""
+
+## check if cluster is up before provisioning
+echo "checking if cluster is up and running"
+status_output=$(local-kube cluster-status --cluster $LOCALKUBE_NAME -m)
+exit_code=$(echo $status_output | jq -r '.exitCode')
+
+if [[ $exit_code -ne 0 ]]; then
+  echo "Error getting cluster status"
+  exit 100
+fi 
+
+cluster_status=$(echo $status_output | jq -r '.clusterStatus')
+
+if [[ "${cluster_status}" != "running" ]]; then
+  echo  "Error cluster is not running, please check"
+  exit 100
+fi
+
+## adding secrets for the environment wildcard cert and homelabCA cert ##
+echo "writing out certs to kubernetes"
+bash ${REPO_DIR}/scripts/kubernetes/cert_secret.sh ${REPO_DIR} ${CLUSTER_NAME}
+
 echo ""
 
 ## Provision cluster base with helmfile ##
@@ -59,6 +84,16 @@ helmfile apply -e ${HELMFILE_ENV} -f ${REPO_DIR}/../k8s-resources/helmfiles/mini
 
 if [[ $? -ne 0 ]]; then
   echo "ERROR: running minio helmfile"
+  exit 123
+fi
+echo ""
+
+## Provision local cluster base items ##
+echo "running local-cluster-base"
+helmfile apply -e ${HELMFILE_ENV} -f "${REPO_DIR}/../k8s-resources/helmfiles/local-cluster-base"
+
+if [[ $? -ne 0 ]]; then
+  echo "ERROR: running local cluster base helmfile"
   exit 123
 fi
 echo ""
