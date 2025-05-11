@@ -29,8 +29,11 @@ sn-clean:
 sn-load-vault:
 	/usr/bin/env bash scripts/vault/load_vault.sh ${MAKEFILE_DIR} "local-single-node"
 
-sn-infra-control:
-	/usr/bin/env bash scripts/provision_infra_control.sh ${MAKEFILE_DIR} "local-single-node"
+sn-infra-control-up:
+	/usr/bin/env bash scripts/provision_infra_control.sh ${MAKEFILE_DIR} "local-single-node" "up"
+
+sn-infra-control-down:
+	/usr/bin/env bash scripts/provision_infra_control.sh ${MAKEFILE_DIR} "local-single-node" "down"
 
 sn-infra-db-forward:
-	/usr/bin/env bash scripts/kubernetes/db_port_forward.sh ${MAKEFILE_DIR} "local-single-node" "infra" "infra-control-cluster"
+	/usr/bin/env bash scripts/kubernetes/db_port_forward.sh ${MAKEFILE_DIR} "local-single-node" "infra" "infra-control-cluster" 

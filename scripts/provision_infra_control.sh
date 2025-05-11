@@ -4,6 +4,7 @@ SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
 REPO_DIR=$1
 CLUSTER_NAME=$2
+DIRECTION=$3
 
 echo "Provisioning infra control stack for ${CLUSTER_NAME}"
 echo "----------------------------------------------------"
@@ -34,6 +35,8 @@ echo "terraform env: ${TERRAFORM_ENV}"
 echo "repo dir: ${REPO_DIR}"
 echo ""
 echo ""
+
+if [[ "${DIRECTION}" == "up" ]]; then
 
 # run terraform for infra control cluster
 echo "running terraform"
@@ -73,4 +76,39 @@ echo ""
 echo ""
 
 echo "infra-control stack provisioning complete"
+
+fi
+
+if [[ "${DIRECTION}" == "down" ]]; then
+
+echo "destroying the helmstack"
+helmfile destroy -e "${HELMFILE_ENV}" -f "${REPO_DIR}/../k8s-resources/helmfiles/infra-control"
+
+if [[ $? -ne 0 ]]; then
+  echo "ERROR: destroying the infra-control helmfile"
+  exit 123
+fi
+
+echo ""
+
+echo "destroying the terraform stack"
+echo "========================================"
+
+TERRAFORM_DIR="${REPO_DIR}/../infra-terraform/${TERRAFORM_ENV}/infra-control"
+echo "terraform dir: ${TERRAFORM_DIR}"
+echo ""
+
+pushd $TERRAFORM_DIR
+  terraform init
+  terraform destroy -auto-approve
+popd
+echo ""
+
+echo "cleaning up terraform files"
+rm -rf "$TERRAFORM_DIR/.terraform"
+rm -f "$TERRAFORM_DIR/.terraform.lock.hcl"
+rm -f "$TERRAFORM_DIR/terraform.tfvars"
+echo ""
+echo ""
+fi
 
